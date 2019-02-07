@@ -40,22 +40,19 @@
         <dt>power<span class="property-type">boolean|string</span></dt>
         <dd>True or 'on' to turn on the LEDs, false or 'off' to turn them off.</dd>
 
-        <dt>brightness<span class="property-type">0..255</span></dt>
-        <dd>Set the brightness of the LEDs, note LEDs must be on for this to have an effect. Not implemented yet.</dd>
+        <dt>brightness<span class="property-type">0..100</span></dt>
+        <dd>Set the brightness of the LEDs, note LEDs must be on for this to have an effect.</dd>
 
-        <dt>color<span class="property-type">{red:0..255, green: 0..255, blue:0..255}</span></dt>
-        <dd>Set the color of the LED. Only in effect if LEDs are switched on.</dd>
-        
-        <dt>white<span class="property-type">boolean</span></dt>
-        <dd>Set brightness of white LEDs.</dd>
-    
+        <dt>speed<span class="property-type">0..100</span></dt>
+        <dd>Set the dimming speed of the LEDs.</dd>
+
         <dt>query<span class="property-type">any</dt>
         <dd>Just add a property named query to msg.payload. Hint: After each change a query is triggered automatically.
     </dl>
 
     <h3>Example</h3>
     <p>Turn light on and set to 50% brightness: <code>msg.payload = { "on": true, "brightness": 50 }</code></p>
-    
+
 </script>
 
 <script type="text/javascript">

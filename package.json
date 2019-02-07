@@ -18,7 +18,7 @@
     }
   },
   "dependencies": {
-    "magic-home": "^1.4.0"
+    "magic-home": "github:vpulim/node-magichome"
   },
   "repository": {
     "type": "git",

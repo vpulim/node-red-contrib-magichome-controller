@@ -13,11 +13,6 @@ module.exports = function (RED) {
                 this.C_OFF = 'off';
 
                 this._power = this.C_OFF;
-                this._red = 0;
-                this._green = 0;
-                this._blue = 0;
-                this._white = 0;
-
                 this._brightness = 0;
             }
 
@@ -48,85 +43,16 @@ module.exports = function (RED) {
                 return this._power;
             }
 
-            set red(value) {
+            set brightness(value) {
                 try {
-                    this._red = this.constructor.normalizeRange(0, 255, value, this._red);
-                    this.emit('change', 'red');
+                    this._brightness = this.constructor.normalizeRange(0, 100, value, this._brightness);
+                    this.emit('change', 'brightness');
                 } catch (error) {
                     node.error(error);
                 }
             }
-            get red() {
-                return this._red;
-            }
-
-            set green(value) {
-                this._green = this.constructor.normalizeRange(0, 255, value, this._green);
-                this.emit('change', 'green');
-            }
-            get green() {
-                return this._green;
-            }
-
-            set blue(value) {
-                this._blue = this.constructor.normalizeRange(0, 255, value, this._blue);
-                this.emit('change', 'blue');
-            }
-            get blue() {
-                return this._blue;
-            }
-
-            set white(value) {
-                this._white = this.constructor.normalizeRange(0, 255, value, this.white);
-                this.emit('change', 'white');
-            }
-            get white() {
-                return this._white;
-            }
-
-            set color(objColor) {
-
-            }
-
-            get color() {
-                let objColor = {
-                    red: this.red,
-                    green: this.green,
-                    blue: this.blue
-                };
-                return objColor;
-            }
-
-            setColorAsArray(r, g, b) {
-                this.red = r;
-                this.green = g;
-                this.blue = b;
-            }
-            getColorAsArray() {
-                return [
-                    this.red,
-                    this.green,
-                    this.blue
-                ];
-            }
-
-            set brightness(value) {
-                this.constructor.normalizeRange(0, 255, value, this._brightness);
-                this.emit('change', 'brightness');
-
-                // let lights = ['red', 'green', 'blue', 'white'];
-
-                // let currentBrightness = Math.max(lights.map(x => this[x]));
-                // let newBrightness = this.constructor.normalizeRange(0, 255, value, currentBrightness);
-                // let deltaBrightness = currentBrightness - newBrightness;
-
-                // for (let color of lights){
-                //     this[color] = this[color] - deltaBrightness;
-                // }
-
-            }
             get brightness() {
-                return Math.max(this.red, this.green, this.blue, this.white);
+                return this._brightness;
             }
 
             set status(objLampState) {
@@ -137,29 +63,21 @@ module.exports = function (RED) {
                     this._power = this.C_OFF;
                 }
 
-                this._red = this.constructor.normalizeRange(0, 255, objLampState.color.red, this._red);
-                this._green = this.constructor.normalizeRange(0, 255, objLampState.color.green, this._green);
-                this._blue = this.constructor.normalizeRange(0, 255, objLampState.color.blue, this._blue);
-                this._white = this.constructor.normalizeRange(0, 255, objLampState.white, this._white);
+                let red = Math.round(objLampState.color.red / 255 * 100)
+                this._brightness = this.constructor.normalizeRange(0, 100, red, this._brightness);
 
                 this.emit('change', 'status');
             }
             get status() {
                 let objStatus = {
                     power: this.power,
-                    brightness: this.brightness,
-                    color: {
-                        red: this.red,
-                        green: this.green,
-                        blue: this.blue
-                    },
-                    white: this.white
+                    brightness: this.brightness
                 };
                 return objStatus;
             }
 
             compare(objLampState) {
-                let compareFields = ['power', 'red', 'green', 'blue', 'white'];
+                let compareFields = ['power', 'brightness'];
                 let isEqual = true;
 
                 if (!(objLampState instanceof LampState)) {
@@ -192,7 +110,10 @@ module.exports = function (RED) {
         let internalState = new LampState();
 
         let node = this;
-        let light = new MagicHomeControl(host);
+        let light = new MagicHomeControl(host, {
+          set_color_magic_bytes: [0x01, 0x0f],
+          wait_for_reply: false
+        });
 
         function setState(value) {
 
@@ -212,7 +133,7 @@ module.exports = function (RED) {
                 node.status({
                     fill: 'yellow',
                     shape: 'dot',
-                    text: 'on'
+                    text: 'brightness: ' + lampState.brightness + '%'
                 });
             } else if (lampState.power === lampState.C_OFF) {
                 node.status({
@@ -229,23 +150,9 @@ module.exports = function (RED) {
             }
         }
 
-        // eslint-disable-next-line no-unused-vars
-        function setColor(r, g, b) {
-            let targetColors = [];
-            for (let color in arguments) {
-                targetColors.push(LampState.normalizeRange(0, 255, arguments[color], internalState.getColorAsArray()[color]));
-            }
-
-            light.setColorAndWarmWhite(targetColors[0], targetColors[1], targetColors[2], internalState.white, queryLampState);
-        }
-
-        function setWhite(w) {
-            let color = LampState.normalizeRange(0, 255, w, internalState.white);
-            light.setColorAndWarmWhite(internalState.red, internalState.green, internalState.blue, color, queryLampState);
-        }
-
-        function setBrightness() {
-            // TBD 
+        function setBrightness(level, speed = 100) {
+          level = LampState.normalizeRange(0, 255, level, internalState.brightness);
+          light.setBrightness(level, speed, queryLampState);
         }
 
         function queryLampState() {
@@ -261,8 +168,7 @@ module.exports = function (RED) {
 
             let queryData = {
                 power: data.on,
-                color: data.color,
-                white: data.warm_white
+                color: data.color
             };
             internalState.status = queryData;
         }
@@ -283,18 +189,9 @@ module.exports = function (RED) {
                 setState(msg.payload.power);
             }
 
-            // color
-            if (msg.payload.color !== undefined) {
-                setColor(msg.payload.color.red, msg.payload.color.green, msg.payload.color.blue);
-            }
-
-            // brightness of white
-            if (msg.payload.white !== undefined) {
-                setWhite(msg.payload.white);
-            }
-
+            // brightness
             if (msg.payload.brightness !== undefined) {
-                setBrightness(msg.payload.brightness);
+                setBrightness(msg.payload.brightness, msg.payload.speed);
             }
 
         });
